@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokemath Battle - Evolution Journey</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --text: #f9fafb;
+      --muted: #cbd5e1;
+      --border: rgba(255, 255, 255, 0.12);
+      --pixel-font: "Trebuchet MS", "Lucida Console", Monaco, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(96, 165, 250, 0.22), transparent 28%),
+        radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.12), transparent 24%),
+        linear-gradient(135deg, #0f172a, #111827 42%, #030712);
+      color: var(--text);
+    }
+
+    .app {
+      width: min(1180px, 96vw);
+      margin: 0 auto;
+      padding: 22px 0 34px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2.35rem);
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 0.94rem;
+    }
+
+    .pixel-text {
+      font-family: var(--pixel-font);
+      letter-spacing: -0.03em;
+      text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: white;
+      background: #334155;
+      cursor: pointer;
+      font-weight: 750;
+      transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .primary { background: linear-gradient(135deg, #2563eb, #7c3aed); }
+
+    .layout {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .arena {
+      width: 100%;
+      max-width: 1000px; 
+      min-height: 720px; 
+      border: 14px solid #263238;
+      outline: 4px solid rgba(0, 0, 0, 0.32);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.16), transparent 38%),
+        linear-gradient(135deg, #2e7d5f, #5fcf88 46%, #c6ef85 78%, #88d66d);
+      border-radius: 42px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        inset 0 0 0 6px rgba(255, 255, 255, 0.06),
+        inset 0 -10px 0 rgba(0, 0, 0, 0.16),
+        0 24px 70px rgba(0, 0, 0, 0.35);
+      display: grid;
+      grid-template-rows: 1fr 164px;
+      gap: 0;
+    }
+
+    .arena::before {
+      content: "";
+      position: absolute;
+      inset: 20px 20px 164px;
+      background:
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 18px),
+        linear-gradient(to bottom, #43dac3 0%, #8cf1da 18%, #8ff08b 19%, #d2fb91 38%, #bdf47d 52%, #70d971 78%, #54c45f 100%);
+      border-radius: 16px 16px 0 0;
+      pointer-events: none;
+    }
+
+    .arena::after {
+      content: "";
+      position: absolute;
+      inset: 20px 20px 164px;
+      background:
+        linear-gradient(90deg, transparent 0 18%, rgba(255, 255, 255, 0.12) 18% 19%, transparent 19% 45%, rgba(255, 255, 255, 0.08) 45% 46%, transparent 46%),
+        repeating-linear-gradient(0deg, rgba(16, 185, 129, 0.16) 0 4px, transparent 4px 26px);
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+
+    .battle-field {
+      position: relative;
+      z-index: 1;
+      min-height: 520px; 
+      isolation: isolate;
+    }
+
+    .combatant {
+      position: absolute;
+      z-index: 2;
+      display: contents;
+      margin: 0;
+    }
+
+    .combatant.enemy .card { position: absolute; left: 0; top: 0; width: min(38%, 320px); z-index: 4; }
+    .combatant.enemy .sprite-wrap { position: absolute; right: 8%; top: 185px; width: 270px; height: 85px; z-index: 3; } 
+    
+    .combatant.player .card { position: absolute; right: 0; bottom: 18px; width: min(40%, 340px); z-index: 4; }
+    .combatant.player .sprite-wrap { position: absolute; left: 8%; bottom: 30px; width: 300px; height: 95px; z-index: 3; } 
+
+    .combatant.enemy .sprite-wrap::before,
+    .combatant.player .sprite-wrap::before {
+      content: ""; 
+      position: absolute; 
+      inset: 0; 
+      z-index: -1;
+      background: radial-gradient(ellipse at center, #76d26d 0 34%, #50bd62 35% 54%, #e6cf74 55% 62%, transparent 63%),
+                  repeating-linear-gradient(12deg, transparent 0 16px, rgba(0, 0, 0, 0.08) 16px 18px);
+      filter: drop-shadow(0 12px 0 rgba(0, 0, 0, 0.12));
+      border-radius: 50%;
+    }
+
+    .card {
+      border: 4px solid #334155;
+      color: #1e293b;
+      background: #f8fafc;
+      padding: 10px 14px 12px;
+      border-radius: 12px;
+      box-shadow: 4px 6px 0 rgba(0, 0, 0, 0.25);
+      font-family: var(--pixel-font);
+      position: relative;
+    }
+    
+    .combatant.player .card { border-top-left-radius: 28px; }
+    .combatant.enemy .card { border-bottom-right-radius: 28px; }
+
+    .name-row { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 6px; 
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px; 
+    }
+    
+    .monster-name { 
+      font-size: clamp(1.2rem, 2vw, 1.5rem); 
+      font-weight: 900; 
+      line-height: 1; 
+      color: #1e293b;
+      letter-spacing: -0.02em;
+    }
+
+    .hp-line { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      color: #334155; 
+      font-size: 0.95rem; 
+      margin-bottom: 6px; 
+      font-weight: 900; 
+    }
+    
+    .hp-line span:first-child { display: flex; align-items: center; gap: 6px; }
+
+    .hp-line span:first-child::before {
+      content: "HP"; 
+      display: inline-block; 
+      padding: 1px 5px; 
+      border-radius: 4px;
+      color: #facc15; 
+      background: #334155; 
+      text-shadow: 1px 1px 0 #000; 
+      border: 2px solid #0f172a;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      box-shadow: 1px 2px 0 #0f172a;
+    }
+
+    .hpbar { 
+      height: 12px; 
+      border-radius: 6px; 
+      background: #cbd5e1; 
+      overflow: hidden; 
+      border: 2px solid #334155; 
+      box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+    
+    .hpfill { 
+      height: 100%; 
+      width: 100%; 
+      background: linear-gradient(180deg, #4ade80, #16a34a); 
+      transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1); 
+      box-shadow: inset 0 2px 2px rgba(255,255,255,0.4);
+      border-radius: 4px;
+    }
+    .hpfill.mid { background: linear-gradient(180deg, #facc15, #ca8a04); } 
+    .hpfill.low { background: linear-gradient(180deg, #f87171, #dc2626); }
+
+    .status-row { margin-top: 6px; min-height: 18px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: #e2e8f0; color: #0f172a; border: 1px solid #94a3b8; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; }
+
+    .sprite {
+      position: absolute; 
+      top: 0; bottom: 0; left: 0; right: 0;
+      margin: auto; 
+      display: flex; justify-content: center; align-items: center;
+      font-size: 4.6rem; line-height: 1;
+      filter: drop-shadow(0 10px 3px rgba(0, 0, 0, 0.18)); 
+      background: transparent !important;
+      z-index: 1;
+    }
+    
+    .combatant.player .sprite { width: 360px; height: 360px; }
+    .combatant.enemy .sprite { width: 330px; height: 330px; }
+    
+    .sprite img { 
+      max-width: 100%; 
+      max-height: 100%; 
+      object-fit: contain; 
+      image-rendering: pixelated; 
+      position: relative; 
+      z-index: 1; 
+      transform-origin: bottom center; 
+    }
+
+    /* Penyesuaian posisi gambar Pokemon */
+    .combatant.player .sprite img { transform: scale(1.3) translate(-30px, -12px); }
+    .combatant.enemy .sprite img { transform: scale(1.15) translate(-30px, -30px); }
+
+    .sprite.hit { animation: hit 260ms ease; }
+    .sprite.attack { animation: attack 260ms ease; }
+    .player .sprite.attack { animation: attackPlayer 260ms ease; }
+
+    .arena.flipped-view .combatant.enemy .card { 
+      left: auto; right: 0; top: auto; bottom: 18px; width: min(40%, 340px);
+      border-radius: 12px; border-top-left-radius: 28px;
+    }
+    .arena.flipped-view .combatant.enemy .sprite-wrap { right: auto; left: 8%; top: auto; bottom: 30px; width: 300px; height: 95px; } 
+    
+    .arena.flipped-view .combatant.player .card { 
+      right: auto; left: 0; bottom: auto; top: 0; width: min(38%, 320px); z-index: 4; 
+      border-radius: 12px; border-bottom-right-radius: 28px;
+    }
+    .arena.flipped-view .combatant.player .sprite-wrap { left: auto; right: 8%; bottom: auto; top: 185px; width: 270px; height: 85px; }
+    
+    .arena.flipped-view .player .sprite { width: 330px; height: 330px; }
+    .arena.flipped-view .enemy .sprite { width: 360px; height: 360px; }
+
+    /* Penyesuaian saat mode tukar pandangan */
+    .arena.flipped-view .combatant.player .sprite img { transform: scale(1.15) translate(-30px, -30px); }
+    .arena.flipped-view .combatant.enemy .sprite img { transform: scale(1.3) translate(-30px, -12px); }
+
+    .battle-menu {
+      position: relative; z-index: 3; display: grid; grid-template-columns: 1fr minmax(270px, 0.88fr); gap: 10px;
+      align-items: stretch; min-height: 144px; padding-top: 12px; border-top: 5px solid #21322b; background: rgba(28, 41, 36, 0.15);
+    }
+
+    .dialog-box, .command-box {
+      background: #f8fafc; color: #374151; border-radius: 9px; border: 5px solid #2f3f46;
+      box-shadow: inset 0 0 0 4px #facc15, inset 0 0 0 8px #ffffff, 5px 5px 0 rgba(0, 0, 0, 0.22); font-family: var(--pixel-font);
+    }
+    
+    .dialog-box { display: grid; align-items: center; padding: 18px 22px; font-size: clamp(1.25rem, 3vw, 2.15rem); font-weight: 900; line-height: 1.18; }
+    .command-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 11px; }
+
+    .command-button {
+      border-radius: 8px; box-shadow: none; color: #f8fafc; border: 4px solid #64748b;
+      font-family: var(--pixel-font); font-size: clamp(1.4rem, 2.5vw, 2rem); text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.28); padding: 9px 10px;
+    }
+    
+    .btn-red { background: linear-gradient(#fb7185, #ef4444); }
+    .btn-green { background: linear-gradient(#22c55e, #16a34a); }
+    .btn-orange { background: linear-gradient(#f59e0b, #b45309); }
+    .btn-blue { background: linear-gradient(#38bdf8, #0284c7); }
+
+    .overlay { position: absolute; inset: 0; z-index: 10; display: none; place-items: center; background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(5px); text-align: center; padding: 24px; }
+    .overlay.show { display: grid; }
+    .overlay-box { max-width: 520px; width: 100%; border-radius: 24px; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.92); padding: 24px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42); }
+    .overlay-box h2 { font-size: 1.8rem; margin: 0 0 12px; color: #facc15; font-family: var(--pixel-font); }
+    .overlay-box p { color: var(--text); margin: 0 0 20px; font-size: 1.1rem; line-height: 1.5; }
+
+
+
+
+    .hidden { display: none !important; }
+
+    .start-screen {
+      min-height: calc(100vh - 56px);
+      display: grid;
+      place-items: center;
+      padding: 28px 0;
+    }
+
+    .start-card {
+      width: min(820px, 94vw);
+      position: relative;
+      overflow: hidden;
+      border-radius: 34px;
+      padding: clamp(24px, 5vw, 48px);
+      text-align: center;
+      border: 10px solid #263238;
+      outline: 4px solid rgba(0, 0, 0, 0.32);
+      background:
+        radial-gradient(circle at 18% 14%, rgba(250, 204, 21, 0.24), transparent 26%),
+        radial-gradient(circle at 84% 18%, rgba(248, 113, 113, 0.24), transparent 26%),
+        linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
+      box-shadow:
+        inset 0 0 0 6px rgba(255, 255, 255, 0.06),
+        inset 0 -10px 0 rgba(0, 0, 0, 0.16),
+        0 24px 70px rgba(0, 0, 0, 0.38);
+    }
+
+    .start-card::before {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      left: 50%;
+      top: 14px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background:
+        linear-gradient(#ef4444 0 48%, #111827 48% 52%, #f8fafc 52% 100%);
+      opacity: 0.16;
+      box-shadow: inset 0 0 0 18px #111827;
+      pointer-events: none;
+    }
+
+    .start-badge {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(250, 204, 21, 0.16);
+      border: 1px solid rgba(250, 204, 21, 0.35);
+      color: #fde68a;
+      font-weight: 900;
+      margin-bottom: 14px;
+    }
+
+    .start-title {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-size: clamp(2rem, 7vw, 4.2rem);
+      color: #f9fafb;
+      text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.28);
+      line-height: 0.95;
+    }
+
+    .start-subtitle {
+      position: relative;
+      z-index: 1;
+      width: min(620px, 100%);
+      margin: 18px auto 24px;
+      color: #dbeafe;
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      line-height: 1.55;
+    }
+
+    .start-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .start-button {
+      font-size: clamp(1.1rem, 3vw, 1.45rem);
+      padding: 14px 24px;
+      border: 4px solid rgba(255, 255, 255, 0.25);
+      border-radius: 16px;
+    }
+
+    .start-hint {
+      position: relative;
+      z-index: 1;
+      margin-top: 18px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    .intro-video-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      background: rgba(2, 6, 23, 0.94);
+      backdrop-filter: blur(6px);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .intro-video-overlay.show { display: grid; }
+
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(6px);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .video-overlay.show { display: grid; }
+
+    .evolution-video-box {
+      width: min(860px, 94vw);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.96);
+      padding: 18px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+    }
+
+    .evolution-video-box h2 {
+      margin: 0 0 12px;
+      color: #facc15;
+      font-size: clamp(1.3rem, 3vw, 2rem);
+    }
+
+    .evolution-video-box video {
+      width: 100%;
+      max-height: 62vh;
+      display: block;
+      background: #000;
+      border-radius: 16px;
+      border: 4px solid #334155;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .evolution-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    @keyframes hit { 
+      0% { opacity: 1; transform: translateX(0); filter: brightness(1); } 
+      20% { opacity: 0; transform: translateX(-10px); filter: brightness(2) drop-shadow(0 0 10px red); } 
+      40% { opacity: 1; transform: translateX(10px); filter: brightness(1); } 
+      60% { opacity: 0; transform: translateX(-10px); } 
+      80% { opacity: 1; transform: translateX(10px); } 
+      100% { opacity: 1; transform: translateX(0); } 
+    }
+    @keyframes attack { 
+      0% { transform: translate(0, 0) scale(1); } 
+      50% { transform: translate(-30px, 20px) scale(1.1); } 
+      100% { transform: translate(0, 0) scale(1); } 
+    }
+    @keyframes attackPlayer { 
+      0% { transform: translate(0, 0) scale(1); } 
+      50% { transform: translate(30px, -20px) scale(1.1); } 
+      100% { transform: translate(0, 0) scale(1); } 
+    }
+
+    @media (max-width: 880px) {
+      .layout { flex-direction: column; }
+      .arena { min-height: 560px; grid-template-rows: 1fr 150px; padding: 14px; border-width: 10px; }
+      .battle-menu { grid-template-columns: 1fr 1fr; min-height: 132px; }
+    }
+
+    @media (max-width: 520px) {
+      .arena { min-height: 620px; grid-template-rows: 1fr 220px; }
+      .battle-menu { grid-template-columns: 1fr; min-height: 204px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="start-screen" id="startScreen">
+      <div class="start-card">
+        <div class="start-badge pixel-text">🔥 Petualangan Perkalian</div>
+        <h1 class="start-title pixel-text">Pokemath Battle</h1>
+        <p class="start-subtitle">
+          Bantu Charmander menjawab soal perkalian, kalahkan lawan, lalu berevolusi sampai menjadi Gigantamax Charizard.
+        </p>
+        <div class="start-actions">
+          <button class="primary start-button pixel-text" id="startGameBtn">Mulai Game</button>
+        </div>
+        <div class="start-hint">Setelah tombol Mulai ditekan, video pembuka dari GitHub akan tampil terlebih dahulu.</div>
+      </div>
+    </section>
+
+    <div class="intro-video-overlay" id="introOverlay">
+      <div class="evolution-video-box">
+        <h2 id="introTitle" class="pixel-text">Pokéball mengeluarkan Charmander</h2>
+        <video id="introVideo" playsinline preload="auto" controls></video>
+        <div class="evolution-actions">
+          <button class="primary" id="skipIntroBtn">Masuk Arena</button>
+        </div>
+      </div>
+    </div>
+
+    <header id="gameHeader" class="game-ui hidden">
+      <div>
+        <h1>Pokemath Battle: Evolution</h1>
+        <div class="subtitle">Selesaikan perkalian agar Pokémon kamu berevolusi menuju Gigantamax!</div>
+      </div>
+      <div class="header-actions">
+        <button class="primary" id="newBattleBtn">Battle Baru</button>
+        <button id="toggleViewBtn">Tukar Pandangan</button>
+      </div>
+    </header>
+
+    <main class="layout game-ui hidden" id="gameMain">
+      <section class="arena" id="arena">
+        
+        <div class="overlay" id="gameOverlay">
+          <div class="overlay-box">
+            <h2 id="resultTitle">Menang!</h2>
+            <p id="resultText">Tim kamu berhasil menang.</p>
+            <button class="primary" id="overlayNewBtn">Main Lagi</button>
+          </div>
+        </div>
+
+
+        <div class="video-overlay" id="evolutionOverlay">
+          <div class="evolution-video-box">
+            <h2 id="evolutionTitle" class="pixel-text">Evolusi!</h2>
+            <video id="evolutionVideo" playsinline preload="auto" controls></video>
+            <div class="evolution-actions">
+              <button class="primary" id="skipEvolutionBtn">Lanjutkan</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="battle-field">
+          <div class="combatant enemy">
+            <div class="card">
+              <div class="name-row">
+                <div class="monster-name pixel-text" id="enemyName">-</div>
+              </div>
+              <div class="hp-line">
+                <span id="enemyHpText">-/-</span>
+                <span id="enemyStats">-</span>
+              </div>
+              <div class="hpbar"><div class="hpfill" id="enemyHpFill"></div></div>
+              <div class="status-row" id="enemyStatus"></div>
+            </div>
+            <div class="sprite-wrap">
+              <div class="sprite" id="enemySprite"></div>
+            </div>
+          </div>
+
+          <div class="combatant player">
+            <div class="sprite-wrap">
+              <div class="sprite" id="playerSprite"></div>
+            </div>
+            <div class="card">
+              <div class="name-row">
+                <div class="monster-name pixel-text" id="playerName">-</div>
+              </div>
+              <div class="hp-line">
+                <span id="playerHpText">-/-</span>
+                <span id="playerStats">-</span>
+              </div>
+              <div class="hpbar"><div class="hpfill" id="playerHpFill"></div></div>
+              <div class="status-row" id="playerStatus"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="battle-menu">
+          <div class="dialog-box pixel-text" id="dialogText">Mempersiapkan...</div>
+          <div class="command-box">
+            <button class="command-button btn-red" id="btn1">-</button>
+            <button class="command-button btn-orange" id="btn2">-</button>
+            <button class="command-button btn-green" id="btn3">-</button>
+            <button class="command-button btn-blue" id="btn4">-</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+
+    const evolutionVideos = [
+      {
+        title: "Pokéball mengeluarkan Charmander",
+        src: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/01%20Pokeball%20Mengeluarkan%20Charmander.mp4"
+      },
+      {
+        title: "Charmander berevolusi menjadi Charmeleon",
+        src: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/02%20Charmander%20Bervolusi%20Menjadi%20Charmeleon.mp4"
+      },
+      {
+        title: "Charmeleon berevolusi menjadi Charizard",
+        src: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/03%20Charmeleon%20Bervolusi%20Menjadi%20Charizard.mp4"
+      },
+      {
+        title: "Charizard berevolusi menjadi Charizard Mega X",
+        src: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/04%20Charizard%20Bervolusi%20Menjadi%20Charizard%20X.mp4"
+      },
+      {
+        title: "Charizard Mega X berevolusi menjadi Charizard Mega Y",
+        src: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/05%20Charizard%20X%20Bervolusi%20Menjadi%20Charizard%20Y.mp4"
+      },
+      {
+        title: "Charizard Mega Y berevolusi menjadi Gigantamax Charizard",
+        src: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/06%20Charizard%20Y%20Bervolusi%20Menjadi%20Gigantamax%20Charizard.mp4"
+      }
+    ];
+
+    const moveDex = {
+      flameBurst: { name: "Api Perkalian", type: "Fire", power: 44, accuracy: 100, effect: { kind: "burn", chance: 25 }, desc: "25% Burn" },
+      emberKick: { name: "Integral Blaze", type: "Fire", power: 58, accuracy: 100, effect: null, desc: "Serangan kuat" },
+      aquaShot: { name: "Aljabar Splash", type: "Water", power: 42, accuracy: 100, effect: null, desc: "Akurat dan stabil" },
+      tideCrash: { name: "Deret Tsunami", type: "Water", power: 60, accuracy: 100, effect: { kind: "slow", chance: 35 }, desc: "35% Slow" },
+      vineLash: { name: "Akar Pangkat", type: "Nature", power: 45, accuracy: 100, effect: null, desc: "Akurat dan stabil" },
+      leafGuard: { name: "Rumus Guard", type: "Nature", power: 0, accuracy: 100, effect: { kind: "guard", chance: 100 }, desc: "Naikkan Guard" },
+      thunderSpark: { name: "Kuis Kilat", type: "Electric", power: 44, accuracy: 100, effect: { kind: "shock", chance: 25 }, desc: "25% Shock" },
+      voltRam: { name: "Limit Shock", type: "Electric", power: 63, accuracy: 100, effect: null, desc: "Serangan kuat" },
+      rockThrow: { name: "Teorema Kokoh", type: "Stone", power: 46, accuracy: 100, effect: null, desc: "Akurat dan stabil" },
+      graniteWall: { name: "Bukti Wall", type: "Stone", power: 0, accuracy: 100, effect: { kind: "guard", chance: 100 }, desc: "Naikkan Guard" },
+      frostNeedle: { name: "Statistik Dingin", type: "Frost", power: 44, accuracy: 100, effect: { kind: "slow", chance: 30 }, desc: "30% Slow" },
+      snowCrash: { name: "Grafik Beku", type: "Frost", power: 59, accuracy: 100, effect: null, desc: "Serangan kuat" },
+      tackle: { name: "Tanya Jawab", type: "Stone", power: 35, accuracy: 100, effect: null, desc: "Paling akurat" },
+      focusPulse: { name: "Fokus Belajar", type: "Electric", power: 0, accuracy: 100, effect: { kind: "focus", chance: 100 }, desc: "Naikkan Attack" }
+    };
+
+    // Database Evolusi Player Lengkap Sesuai Permintaan
+    const playerDex = [
+      { name: "Charmander", type: "Fire", frontImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charmander%20depan.gif", backImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charmander%20belakang.gif", cry: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charmander.mp3", moves: ["flameBurst", "emberKick", "tackle", "focusPulse"] },
+      { name: "Charmeleon", type: "Electric", frontImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charmeleon%20depan.gif", backImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charmeleon%20belakang.gif", cry: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charmeleon.mp3", moves: ["thunderSpark", "voltRam", "flameBurst", "focusPulse"] },
+      { name: "Charizard", type: "Fire", frontImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard%20depan.gif", backImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard%20belakang.gif", cry: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard.mp3", moves: ["flameBurst", "emberKick", "thunderSpark", "focusPulse"] },
+      { name: "Charizard Mega X", type: "Stone", frontImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-megax%20depan.gif", backImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-megax%20belakang.gif", cry: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-megax.mp3", moves: ["rockThrow", "graniteWall", "emberKick", "focusPulse"] },
+      { name: "Charizard Mega Y", type: "Nature", frontImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-megay%20depan.gif", backImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-megay%20belakang.gif", cry: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-megay.mp3", moves: ["vineLash", "leafGuard", "flameBurst", "focusPulse"] },
+      { name: "Charizard Gmax", type: "Frost", frontImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-gmax%20depan.gif", backImage: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard-gmax%20belakang.gif", cry: "https://raw.githubusercontent.com/dosen-uinsi/Pokemath/main/charizard.mp3", moves: ["frostNeedle", "snowCrash", "flameBurst", "focusPulse"] }
+    ];
+
+    // Bank Data Soal Berdasarkan Stage (Setiap Pokemon mendapat jatah 5 soal pas 100 damage)
+    const stageQuestions = [
+      [{n1: 1, n2: 6}, {n1: 2, n2: 6}, {n1: 3, n2: 6}, {n1: 4, n2: 6}, {n1: 5, n2: 6}], // Stage 0: Charmander
+      [{n1: 6, n2: 6}, {n1: 7, n2: 6}, {n1: 8, n2: 6}, {n1: 9, n2: 6}, {n1: 10, n2: 6}], // Stage 1: Charmeleon
+      [{n1: 1, n2: 7}, {n1: 2, n2: 7}, {n1: 3, n2: 7}, {n1: 4, n2: 7}, {n1: 5, n2: 7}], // Stage 2: Charizard
+      [{n1: 6, n2: 7}, {n1: 7, n2: 7}, {n1: 8, n2: 7}, {n1: 9, n2: 7}, {n1: 10, n2: 7}], // Stage 3: Mega X
+      [{n1: 1, n2: 8}, {n1: 2, n2: 8}, {n1: 3, n2: 8}, {n1: 4, n2: 8}, {n1: 5, n2: 8}], // Stage 4: Mega Y
+      [{n1: 6, n2: 8}, {n1: 7, n2: 8}, {n1: 8, n2: 8}, {n1: 9, n2: 8}, {n1: 10, n2: 8}]  // Stage 5: Gmax
+    ];
+
+    // Pool musuh mengikuti level/stage evolusi pemain.
+    // Stage 0-2  : musuh normal
+    // Stage 3-4  : musuh Mega
+    // Stage 5    : musuh Gigantamax/Gmax
+    const enemyPools = {
+      normal: [
+        "pikachu", "bulbasaur", "squirtle", "gengar", "lucario", "snorlax",
+        "dragonite", "mewtwo", "greninja", "blastoise", "venusaur", "arcanine",
+        "machamp", "alakazam", "gyarados", "lapras", "eevee", "sylveon", "umbreon", "espeon"
+      ],
+      mega: [
+        "charizard-megax", "charizard-megay", "blastoise-mega", "venusaur-mega",
+        "gengar-mega", "lucario-mega", "mewtwo-megax", "mewtwo-megay",
+        "gyarados-mega", "alakazam-mega", "machamp-mega", "gardevoir-mega",
+        "salamence-mega", "metagross-mega", "absol-mega", "mawile-mega"
+      ],
+      gmax: [
+        "charizard-gmax", "blastoise-gmax", "venusaur-gmax", "gengar-gmax",
+        "pikachu-gmax", "eevee-gmax", "machamp-gmax", "snorlax-gmax",
+        "lapras-gmax", "grimmsnarl-gmax", "kingler-gmax", "duraludon-gmax",
+        "cinderace-gmax", "inteleon-gmax", "rillaboom-gmax", "orbeetle-gmax"
+      ]
+    };
+
+    const FIXED_MAX_HP = 100;
+    const FIXED_DAMAGE = 20;
+
+    let state;
+
+    const el = {
+      startScreen: document.getElementById("startScreen"),
+      startGameBtn: document.getElementById("startGameBtn"),
+      introOverlay: document.getElementById("introOverlay"),
+      introTitle: document.getElementById("introTitle"),
+      introVideo: document.getElementById("introVideo"),
+      skipIntroBtn: document.getElementById("skipIntroBtn"),
+      gameHeader: document.getElementById("gameHeader"),
+      gameMain: document.getElementById("gameMain"),
+      playerName: document.getElementById("playerName"),  
+      playerHpText: document.getElementById("playerHpText"), 
+      playerHpFill: document.getElementById("playerHpFill"), 
+      playerStats: document.getElementById("playerStats"), 
+      playerStatus: document.getElementById("playerStatus"), 
+      playerSprite: document.getElementById("playerSprite"),
+      enemyName: document.getElementById("enemyName"), 
+      enemyHpText: document.getElementById("enemyHpText"), 
+      enemyHpFill: document.getElementById("enemyHpFill"), 
+      enemyStats: document.getElementById("enemyStats"), 
+      enemyStatus: document.getElementById("enemyStatus"), 
+      enemySprite: document.getElementById("enemySprite"),
+      overlay: document.getElementById("gameOverlay"), 
+      resultTitle: document.getElementById("resultTitle"), 
+      resultText: document.getElementById("resultText"), 
+      evolutionOverlay: document.getElementById("evolutionOverlay"),
+      evolutionTitle: document.getElementById("evolutionTitle"),
+      evolutionVideo: document.getElementById("evolutionVideo"),
+      skipEvolutionBtn: document.getElementById("skipEvolutionBtn"),
+      arena: document.getElementById("arena"), 
+      toggleViewBtn: document.getElementById("toggleViewBtn"), 
+      dialogText: document.getElementById("dialogText"),
+      buttons: [
+        document.getElementById("btn1"), document.getElementById("btn2"), 
+        document.getElementById("btn3"), document.getElementById("btn4")
+      ]
+    };
+
+    document.getElementById("startGameBtn").addEventListener("click", beginGame);
+    document.getElementById("newBattleBtn").addEventListener("click", startBattle);
+    document.getElementById("overlayNewBtn").addEventListener("click", startBattle);
+    document.getElementById("toggleViewBtn").addEventListener("click", toggleView);
+
+    function setGameUiVisible(visible) {
+      el.gameHeader.classList.toggle("hidden", !visible);
+      el.gameMain.classList.toggle("hidden", !visible);
+    }
+
+    async function beginGame() {
+      el.startGameBtn.disabled = true;
+      el.startScreen.classList.add("hidden");
+      await playIntroVideo();
+      setGameUiVisible(true);
+      startBattle();
+      el.startGameBtn.disabled = false;
+    }
+
+    function playIntroVideo() {
+      const videoData = evolutionVideos[0];
+      if (!videoData || !el.introOverlay || !el.introVideo) return Promise.resolve();
+
+      return new Promise(resolve => {
+        let resolved = false;
+
+        const finishIntro = () => {
+          if (resolved) return;
+          resolved = true;
+          el.introVideo.pause();
+          el.introVideo.removeAttribute("src");
+          el.introVideo.load();
+          el.introOverlay.classList.remove("show");
+          resolve();
+        };
+
+        el.introTitle.textContent = videoData.title;
+        el.introVideo.src = videoData.src;
+        el.introVideo.currentTime = 0;
+        el.introOverlay.classList.add("show");
+
+        el.skipIntroBtn.onclick = finishIntro;
+        el.introVideo.onended = finishIntro;
+        el.introVideo.onerror = finishIntro;
+
+        const playPromise = el.introVideo.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {
+            // Jika autoplay diblokir browser, video tetap muncul dan bisa diputar manual.
+          });
+        }
+      });
+    }
+
+    function cloneMonster(base) {
+      return { ...base, maxHp: FIXED_MAX_HP, hp: FIXED_MAX_HP, status: {}, buffs: { atk: 0, def: 0, spd: 0 }, fainted: false };
+    }
+
+    function enemyTierForStage(stage) {
+      if (stage >= 5) return "gmax";
+      if (stage >= 3) return "mega";
+      return "normal";
+    }
+
+    function formatPokemonName(spriteId) {
+      const specialSuffix = spriteId.match(/-(megax|megay|mega|gmax)$/);
+      let baseName = spriteId.replace(/-(megax|megay|mega|gmax)$/, "");
+      baseName = baseName
+        .split("-")
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+
+      if (!specialSuffix) return baseName;
+      const suffix = specialSuffix[1];
+      if (suffix === "megax") return `${baseName} Mega X`;
+      if (suffix === "megay") return `${baseName} Mega Y`;
+      if (suffix === "mega") return `${baseName} Mega`;
+      return `Gigantamax ${baseName}`;
+    }
+
+    function cryNameForSprite(spriteId) {
+      // Banyak file audio cry memakai nama dasar Pokemon, bukan nama Mega/Gmax.
+      return spriteId.replace(/-(megax|megay|mega|gmax)$/, "");
+    }
+
+    function enemyMovesForTier(tier) {
+      if (tier === "gmax") return ["frostNeedle", "snowCrash", "rockThrow", "tideCrash"];
+      if (tier === "mega") return ["rockThrow", "graniteWall", "voltRam", "emberKick"];
+      return ["tackle", "aquaShot", "frostNeedle", "rockThrow"];
+    }
+
+    function generateRandomEnemy(stage = 0) {
+      const tier = enemyTierForStage(stage);
+      const pool = enemyPools[tier];
+      const randomName = pool[Math.floor(Math.random() * pool.length)];
+      const displayName = formatPokemonName(randomName);
+      const cryName = cryNameForSprite(randomName);
+      
+      return cloneMonster({
+        name: displayName,
+        tier: tier === "gmax" ? "GMAX" : tier === "mega" ? "MEGA" : "NORMAL",
+        frontImage: `https://play.pokemonshowdown.com/sprites/ani/${randomName}.gif`,
+        backImage: `https://play.pokemonshowdown.com/sprites/ani-back/${randomName}.gif`,
+        cry: `https://play.pokemonshowdown.com/audio/cries/${cryName}.mp3`,
+        moves: enemyMovesForTier(tier)
+      });
+    }
+
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startBattle() {
+      // Menyiapkan player dengan bentuk 6 stage secara berurutan dan 6 musuh
+      const playerTeam = playerDex.map(cloneMonster);
+      const enemyTeam = [];
+      for(let i=0; i<6; i++) enemyTeam.push(generateRandomEnemy(i));
+
+      state = { 
+        playerTeam, 
+        enemyTeam, 
+        stage: 0, // Mengontrol tahap evolusi mana saat ini aktif
+        busy: false, 
+        gameOver: false, 
+        turn: 1, 
+        viewFlipped: false,
+        currentQuestions: shuffleArray(stageQuestions[0])
+      };
+      
+      el.overlay.classList.remove("show");
+      el.evolutionOverlay.classList.remove("show");
+      el.evolutionVideo.pause();
+      el.evolutionVideo.removeAttribute("src");
+      el.evolutionVideo.load();
+      render();
+    }
+
+    function active(side) { 
+      return side === "player" ? state.playerTeam[state.stage] : state.enemyTeam[state.stage]; 
+    }
+
+    function toggleView() {
+      if (!state) return;
+      state.viewFlipped = !state.viewFlipped;
+      render();
+    }
+
+    function startQuizTurn() {
+      state.busy = false; 
+      const p = active("player");
+      
+      if (state.currentQuestions.length === 0) return; // Mencegah eror bila soal habis tapi turn berjalan
+      
+      const q = state.currentQuestions[0];
+      const correctAns = q.n1 * q.n2;
+
+      let options = new Set([correctAns]);
+      
+      // Mengacak jawaban salah agar masih kelipatan dari angka utamanya jika memungkinkan
+      while(options.size < 4) {
+        let wrongMultiplier = q.n1 + (Math.floor(Math.random() * 5) - 2); 
+        if (wrongMultiplier < 1) wrongMultiplier = q.n1 + Math.floor(Math.random() * 3) + 1;
+        
+        let wrong = wrongMultiplier * q.n2;
+        
+        if (wrong === correctAns || options.has(wrong)) {
+           wrong = correctAns + Math.floor(Math.random() * 6) + 1;
+        }
+        if (wrong > 0) options.add(wrong);
+      }
+      
+      options = Array.from(options).sort(() => Math.random() - 0.5);
+
+      setDialog(`Giliran ${p.name}! <br/><strong>${q.n1} x ${q.n2} = ?</strong>`);
+
+      el.buttons.forEach((btn, index) => {
+        btn.textContent = options[index];
+        btn.disabled = false;
+        
+        btn.onclick = () => {
+          state.busy = true; 
+          el.buttons.forEach(b => b.disabled = true);
+          processTurn(options[index] === correctAns);
+        };
+      });
+    }
+
+    function render() {
+      el.arena.classList.toggle("flipped-view", !!state.viewFlipped);
+      renderMonster("player", active("player"));
+      renderMonster("enemy", active("enemy"));
+      
+      if (!state.busy && !state.gameOver) {
+        startQuizTurn();
+      }
+    }
+
+    function renderMonster(side, mon) {
+      const prefix = side === "player" ? "player" : "enemy";
+      el[prefix + "Name"].textContent = mon.name;
+      el[prefix + "HpText"].textContent = `${Math.max(0, mon.hp)}/${mon.maxHp}`;
+      
+      const pct = Math.max(0, (mon.hp / mon.maxHp) * 100);
+      el[prefix + "HpFill"].style.width = pct + "%";
+      el[prefix + "HpFill"].className = "hpfill" + (pct <= 25 ? " low" : pct <= 55 ? " mid" : "");
+      
+      el[prefix + "Status"].innerHTML = statusLabels(mon).join("");
+      el[prefix + "Stats"].textContent = mon.tier || mon.type || "-";
+      
+      const sprite = el[prefix + "Sprite"];
+      sprite.innerHTML = "";
+      
+      const isPlayer = side === "player";
+      const imageSrc = isPlayer
+        ? (state.viewFlipped ? mon.frontImage : mon.backImage)
+        : (state.viewFlipped ? mon.backImage : mon.frontImage);
+      
+      const img = new Image();
+      img.src = imageSrc;
+      sprite.appendChild(img);
+    }
+
+    function statusLabels(mon) {
+      const labels = [];
+      if (mon.status.burn) labels.push(`<span class="status">BURN</span>`);
+      if (mon.status.shock) labels.push(`<span class="status">SHOCK</span>`);
+      if (mon.status.slow) labels.push(`<span class="status">SLOW</span>`);
+      return labels; 
+    }
+
+    function setDialog(text) { 
+      if (el.dialogText) el.dialogText.innerHTML = text; 
+    }
+    
+    function log(text) { 
+      setDialog(text); 
+    }
+
+    async function processTurn(isCorrect) {
+      const p = active("player");
+      const e = active("enemy");
+      const enemyMove = e.moves[Math.floor(Math.random() * e.moves.length)];
+      const randomPlayerMove = p.moves[Math.floor(Math.random() * p.moves.length)];
+      
+      if (isCorrect) {
+        log(`Tepat sekali! ${p.name} bersiap menyerang...`);
+        state.currentQuestions.shift(); // Hapus soal yang berhasil dijawab
+      } else {
+        log(`Jawaban Salah! ${p.name} kebingungan...`);
+        // Soal salah dipindahkan ke antrean paling belakang agar diulang
+        state.currentQuestions.push(state.currentQuestions.shift());
+      }
+      await wait(1400);
+
+      if (isCorrect) {
+        await executeMove("player", randomPlayerMove);
+      } else {
+        log(`Serangan ${p.name} meleset karena salah berhitung!`);
+        await wait(1200);
+      }
+
+      if (!state.gameOver && !active("enemy").fainted) {
+        await executeMove("enemy", enemyMove);
+      }
+      
+      await endTurn();
+    }
+
+    async function executeMove(side, moveId) {
+      const attacker = active(side);
+      const defender = active(side === "player" ? "enemy" : "player");
+      const move = moveDex[moveId];
+
+      if (attacker.fainted || attacker.hp <= 0) return;
+      playCry(attacker);
+      animate(side, "attack");
+      await wait(240);
+
+      defender.hp = Math.max(0, defender.hp - FIXED_DAMAGE);
+      animate(side === "player" ? "enemy" : "player", "hit");
+      log(`${attacker.name} menggunakan ${move.name}. (-20 HP)!`);
+      
+      if (move.effect && Math.random() * 100 < move.effect.chance && defender.hp > 0) {
+         if (move.effect.kind === "burn") defender.status.burn = 3;
+         if (move.effect.kind === "shock") defender.status.shock = 2;
+         if (move.effect.kind === "slow") defender.status.slow = 2;
+      }
+
+      checkFaint(defender, side === "player" ? "enemy" : "player");
+      
+      el.arena.classList.toggle("flipped-view", !!state.viewFlipped);
+      renderMonster("player", active("player"));
+      renderMonster("enemy", active("enemy"));
+      
+      await wait(1200);
+    }
+
+
+    function playEvolutionVideo(videoIndex) {
+      const videoData = evolutionVideos[videoIndex];
+      if (!videoData || !el.evolutionOverlay || !el.evolutionVideo) return Promise.resolve();
+
+      return new Promise(resolve => {
+        let resolved = false;
+
+        const finishVideo = () => {
+          if (resolved) return;
+          resolved = true;
+          el.evolutionVideo.pause();
+          el.evolutionVideo.removeAttribute("src");
+          el.evolutionVideo.load();
+          el.evolutionOverlay.classList.remove("show");
+          resolve();
+        };
+
+        el.evolutionTitle.textContent = videoData.title;
+        el.evolutionVideo.src = videoData.src;
+        el.evolutionVideo.currentTime = 0;
+        el.evolutionOverlay.classList.add("show");
+
+        el.skipEvolutionBtn.onclick = finishVideo;
+        el.evolutionVideo.onended = finishVideo;
+        el.evolutionVideo.onerror = finishVideo;
+
+        const playPromise = el.evolutionVideo.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {
+            // Bila autoplay diblokir browser, video tetap tampil dan bisa diputar manual.
+          });
+        }
+      });
+    }
+
+    async function endTurn() {
+      if (state.gameOver) {
+        render();
+        return;
+      }
+
+      const enemy = active("enemy");
+      // Cek apakah musuh KO dan stage masih berjalan untuk berevolusi
+      if (enemy.fainted && state.stage < 5) {
+        log(`Luar Biasa! ${active("player").name} sedang berevolusi...`);
+        await wait(2200);
+        
+        state.stage++;
+        state.currentQuestions = shuffleArray(stageQuestions[state.stage]);
+
+        // Tampilkan video evolusi yang sesuai dengan stage baru.
+        // stage 1 = video 02, stage 2 = video 03, dst.
+        await playEvolutionVideo(state.stage);
+        
+        // Membunyikan suara Pokemon baru yang sudah berevolusi
+        playCry(active("player"));
+        const enemyTierLabel = active("enemy").tier ? ` (${active("enemy").tier})` : "";
+        log(`Muncul ${active("player").name}! Lawan baru menghadang: ${active("enemy").name}${enemyTierLabel}!`);
+        await wait(2000);
+      }
+      
+      state.turn += 1;
+      state.busy = false; 
+      render();
+    }
+
+    function checkFaint(mon, side) {
+      if (mon.hp <= 0 && !mon.fainted) {
+        mon.hp = 0; mon.fainted = true;
+        log(`${mon.name} tumbang!`);
+        
+        if (side === "player") {
+          finish(false); // Player Game Over seketika jika HP habis
+        }
+        if (side === "enemy" && state.stage === 5) {
+          finish(true); // Lawan terakhir di stage ke-6 habis, Menang Total!
+        }
+      }
+    }
+
+    function finish(playerWon) {
+      state.gameOver = true; 
+      state.busy = true; 
+      el.resultTitle.textContent = playerWon ? "Kamu Menang!" : "Kamu Kalah!";
+      el.resultText.textContent = playerWon 
+        ? "Selamat! Kamu berhasil berevolusi sampai bentuk Gigantamax dan mengalahkan semuanya!" 
+        : `Langkahmu terhenti saat menggunakan ${active("player").name}.`;
+      el.overlay.classList.add("show");
+    }
+
+    function animate(side, kind) {
+      const sprite = side === "player" ? el.playerSprite : el.enemySprite;
+      sprite.classList.remove("hit", "attack");
+      void sprite.offsetWidth;
+      sprite.classList.add(kind);
+      setTimeout(() => sprite.classList.remove(kind), 280);
+    }
+
+    function playCry(mon) {
+      if (!mon.cry) return;
+      try { 
+        const audio = new Audio(mon.cry); 
+        audio.volume = 0.18; 
+        audio.play().catch(()=>{}); 
+      } catch (e) {}
+    }
+
+    function wait(ms) { 
+      return new Promise(resolve => setTimeout(resolve, ms)); 
+    }
+    
+    setGameUiVisible(false);
+  </script>
+</body>
+</html>
